@@ -122,7 +122,7 @@ class LocalBinder(Application):
             stderr.append(x)
             m = re.match(r'\s*or\s+(http://127\.0\.0\.1:[0-9]+/\?token=\S+)\s*', x.decode('utf8'))
             if m:
-                url = m.group(1)
+                url = m.group(1).replace(':8888', f':{self.port}')
                 print(f'Open: {url}')
                 print('Use Control-C to stop this server and shut down all kernels')
             self.log.info(f'STDERR: {x}')
