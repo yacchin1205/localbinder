@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 import re
 
 from traitlets import Int, Unicode, List
@@ -7,7 +8,7 @@ from traitlets.config import Application
 from binderhub.app import BinderHub
 
 from localbinder.url import parse_binder_url
-from localbinder.exceptions import Repo2DockerError
+from localbinder.exceptions import Repo2DockerError, DockerError
 
 async def _read_stream(stream, cb):
     while True:
@@ -24,6 +25,7 @@ class LocalBinder(Application):
         'f': 'LocalBinder.config_file',
         'config': 'LocalBinder.config_file',
         'port': 'LocalBinder.port',
+        'home': 'LocalBinder.home',
     }
 
     flags = {'debug': ({'Application': {'log_level': 10}}, 'Set loglevel to DEBUG')}
@@ -39,6 +41,8 @@ class LocalBinder(Application):
     repo2docker_args = List([], help='Additional Arguments for repo2docker command').tag(config=True)
 
     image_name = Unicode('yacchin1205/localbinder/r2d-image', help='Image name to save').tag(config=True)
+
+    home = Unicode(help='Local directory for home (must be an absolute path)').tag(config=True)
 
     config_file = Unicode('', help="Load this config file").tag(config=True)
 
@@ -98,6 +102,8 @@ class LocalBinder(Application):
     async def _docker(self, image_name):
         print(f'Running... {image_name}')
         args = ['run', '-p', f'{self.port}:8888', '-i']
+        if self.home:
+            args += ['-v', f'{self.home}:/home/jovyan']
         args += self.docker_args
         process = await asyncio.create_subprocess_exec(
             self.docker_command,
@@ -107,9 +113,13 @@ class LocalBinder(Application):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
         self.docker_process = process
+        stderr = []
+        stdout = []
         def stdout_cb(x):
+            stdout.append(x)
             self.log.info(f'STDOUT: {x}')
         def stderr_cb(x):
+            stderr.append(x)
             m = re.match(r'\s*or\s+(http://127\.0\.0\.1:[0-9]+/\?token=\S+)\s*', x.decode('utf8'))
             if m:
                 url = m.group(1)
@@ -121,6 +131,8 @@ class LocalBinder(Application):
             _read_stream(process.stderr, stderr_cb)
         ])
         await process.wait()
+        if process.returncode != 0:
+            raise DockerError(process.returncode, stdout, stderr)
 
     async def _repo2docker(self, repo_url, ref=None):
         image_name = self.image_name
