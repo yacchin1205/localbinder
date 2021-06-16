@@ -1,3 +1,7 @@
+# localbinder
+
+A Command Line Tool to launch Jupyter Notebook Server based on a MyBinder URL locally
+
 # How to run
 
 ```
