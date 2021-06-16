@@ -11,3 +11,9 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -it yacchin1205/l
 ```
 
 The command will display a URL like `http://127.0.0.1:8888/?token=...`, so open it in your browser.
+
+If you wanted to launch https://mybinder.org/v2/gh/NII-cloud-operation/Jupyter-LC_docker/openhouse-2021-demo locally, you could run the command as follows:
+
+```
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -it yacchin1205/localbinder https://mybinder.org/v2/gh/NII-cloud-operation/Jupyter-LC_docker/openhouse-2021-demo
+```
